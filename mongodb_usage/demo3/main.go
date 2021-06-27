@@ -34,8 +34,11 @@ func main (){
 		database *mongo.Database
 		collection *mongo.Collection
 		record *LogRecord
-		result *mongo.InsertOneResult
 		docId primitive.ObjectID
+		logArr []interface{}
+		insertId interface{} //_id:11110
+		result *mongo.InsertManyResult
+
 	)
 
 
@@ -64,12 +67,18 @@ func main (){
 		TimePoint: TimePoint{StartTime: time.Now().Unix(), EndTime: time.Now().Unix() + 10},
 	}
 
-	if result, err = collection.InsertOne(context.TODO(), record); err != nil {
+	//insert a batch
+	logArr = []interface{}{record, record, record}
+	if result, err = collection.InsertMany(context.TODO(), logArr); err != nil {
 		fmt.Println(err)
 		return
 	}
-	//_id:  default create a unique ID, objectID: 12byte binary
-	docId = result.InsertedID.(primitive.ObjectID)
-	fmt.Print("Self Increasing ID:", docId.Hex())
 
+	//twitter's algorithm
+	//snowflake: millisecond + machineID + current milli second's self increasing id(every milli second switched to 0)
+	for _, insertId = range result.InsertedIDs{
+		//reflect interface{} to objectID
+		docId = insertId.(primitive.ObjectID)
+		fmt.Println("Self Increasing ID:", docId.Hex())
+	}
 }

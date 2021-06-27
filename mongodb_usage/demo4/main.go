@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
@@ -22,9 +21,12 @@ type LogRecord struct {
 	TimePoint TimePoint `bson:"timePoint"`// executing time
 }
 
+// FindByJobName jobName filter condition
+type FindByJobName struct {
+	JobName string `bson:"job_name"` //JobName job10
+}
 
-func main (){
-
+func main() {
 	var (
 		ctx context.Context
 		cancel context.CancelFunc
@@ -33,9 +35,9 @@ func main (){
 		err error
 		database *mongo.Database
 		collection *mongo.Collection
+		cond *FindByJobName
 		record *LogRecord
-		result *mongo.InsertOneResult
-		docId primitive.ObjectID
+		cursor *mongo.Cursor
 	)
 
 
@@ -55,21 +57,32 @@ func main (){
 	//3, choose collection my_collection
 	collection = database.Collection("log")
 
-	//4, insert record
-	record = &LogRecord{
-		JobName:   "job10",
-		Command:   "echo hello",
-		Err:       "",
-		Content:   "hello",
-		TimePoint: TimePoint{StartTime: time.Now().Unix(), EndTime: time.Now().Unix() + 10},
-	}
+	//4, filter based on jobName, find jobName = job10, find 5
+	cond = &FindByJobName{JobName: "job10"} //{"jobName": "job10"}
 
-	if result, err = collection.InsertOne(context.TODO(), record); err != nil {
+	//5, search
+	//findOptions.SetLimit(2)
+
+
+	if cursor, err = collection.Find(context.TODO(), cond, options.Find().SetSkip(0), options.Find().SetLimit(2)); err != nil {
 		fmt.Println(err)
 		return
 	}
-	//_id:  default create a unique ID, objectID: 12byte binary
-	docId = result.InsertedID.(primitive.ObjectID)
-	fmt.Print("Self Increasing ID:", docId.Hex())
 
+	//delayed release
+	defer cursor.Close(context.TODO())
+
+	//6, iterate collection
+	for cursor.Next(context.TODO()) {
+		record = &LogRecord{}
+
+		//reflect to bson object
+		if err = cursor.Decode(record); err != nil {
+			fmt.Println(err)
+			return
+		}
+		//print log
+		fmt.Println(*record)
+
+	}
 }
