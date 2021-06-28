@@ -1,1 +1,1 @@
-# go-prepare1
+# Go Practice for using Linux Cron, ETCD, MongoDB
