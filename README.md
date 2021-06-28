@@ -1,1 +1,1 @@
-# Go Practice for using Linux Cron, ETCD, MongoDB
+# Demo for using Go with Linux Cron, ETCD, MongoDB
